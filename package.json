@@ -6,9 +6,13 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "report": "playwright show-report"
+    "allure:generate": "allure generate allure-results -o allure-report --clean",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "report": "npm run allure:generate && npm run allure:open"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0"
+    "@playwright/test": "^1.44.0",
+    "allure-playwright": "^3.0.0"
   }
 }
