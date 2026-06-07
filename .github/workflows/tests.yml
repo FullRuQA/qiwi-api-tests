@@ -45,21 +45,13 @@ jobs:
         if: always()
         run: npm run allure:generate
 
-      - name: Upload Allure Results
+      - name: Upload Allure Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results
-          path: allure-results/
+          name: allure-report
+          path: allure-report/
           retention-days: 30
-
-      - name: Deploy Allure Report to GitHub Pages
-        if: github.ref == 'refs/heads/main' && success()
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
-          destination_dir: allure-report
 
   postman-tests:
     name: Postman Collection (Newman)
