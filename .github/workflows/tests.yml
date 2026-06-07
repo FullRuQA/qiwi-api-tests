@@ -38,6 +38,9 @@ jobs:
           QIWI_WALLET: ${{ secrets.QIWI_WALLET }}
           QIWI_RECIPIENT: ${{ secrets.QIWI_RECIPIENT }}
 
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline
+
       - name: Generate Allure Report
         if: always()
         run: npm run allure:generate
