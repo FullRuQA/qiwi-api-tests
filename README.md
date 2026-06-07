@@ -78,6 +78,21 @@ npm run allure:generate
 # Потом открыть allure-report/index.html в браузере
 ```
 
+### CI/CD (GitHub Actions)
+
+Тесты автоматически запускаются при каждом push в `main` и при pull request.
+Allure-отчёт публикуется в GitHub Pages после успешного прохождения.
+
+**Настройка secrets (опционально):**
+- `QIWI_TOKEN` - API-токен QIWI
+- `QIWI_WALLET` - номер кошелька
+- `QIWI_RECIPIENT` - номер получателя
+
+**Включение GitHub Pages:**
+1. Settings -> Pages -> Source: GitHub Actions
+2. После первого деплоя отчёт будет доступен по адресу:
+   `https://fullrqa.github.io/qiwi-api-tests/allure-report/`
+
 ### Переменные окружения
 
 | Переменная | По умолчанию | Описание |
