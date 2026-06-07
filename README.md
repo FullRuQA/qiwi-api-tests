@@ -81,6 +81,11 @@ npm run allure:generate
 ### CI/CD (GitHub Actions)
 
 Тесты автоматически запускаются при каждом push в `main` и при pull request.
+
+**Два параллельных джоба:**
+1. **Playwright Tests** - запуск автотестов + Allure-отчёт
+2. **Postman Collection (Newman)** - запуск Postman коллекции через CLI
+
 Allure-отчёт публикуется в GitHub Pages после успешного прохождения.
 
 **Настройка secrets (опционально):**
@@ -90,7 +95,7 @@ Allure-отчёт публикуется в GitHub Pages после успешн
 
 **Включение GitHub Pages:**
 1. Settings -> Pages -> Source: GitHub Actions
-2. После первого деплоя отчёт будет доступен по адресу:
+2. После первого деплоя отчёт будет доступен:
    `https://fullrqa.github.io/qiwi-api-tests/allure-report/`
 
 ### Переменные окружения
