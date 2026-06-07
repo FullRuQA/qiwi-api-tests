@@ -66,15 +66,16 @@ npm run test:headed
 
 ### Allure-отчёт
 ```bash
-# Запуск тестов + генерация отчёта
+# Запуск тестов
 npm test
+
+# Просмотр отчёта в браузере (запускает локальный сервер)
+npm run allure:serve
+# Откроется http://localhost:8080
+
+# Или сгенерировать статический отчёт
 npm run allure:generate
-
-# Открыть отчёт в браузере
-npm run allure:open
-
-# Или одной командой
-npm run report
+# Потом открыть allure-report/index.html в браузере
 ```
 
 ### Переменные окружения
