@@ -95,6 +95,8 @@ jobs:
           --ignore-redirects
         env:
           QIWI_TOKEN: ${{ secrets.QIWI_TOKEN }}
+          QIWI_WALLET: ${{ secrets.QIWI_WALLET }}
+          QIWI_RECIPIENT: ${{ secrets.QIWI_RECIPIENT }}
 
       - name: Upload Newman results
         if: always()

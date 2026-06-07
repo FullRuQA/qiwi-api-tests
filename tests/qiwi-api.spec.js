@@ -30,6 +30,13 @@ async function parseJson(response) {
   }
 }
 
+function assertContentType(response, expected = 'application/json') {
+  const ct = response.headers()['content-type'] || '';
+  if (ct && !ct.includes(expected)) {
+    throw new Error(`Expected Content-Type "${expected}", got "${ct}"`);
+  }
+}
+
 // ============================================================
 // 1. ПРОВЕРКА ДОСТУПНОСТИ СЕРВИСА
 // ============================================================
@@ -40,19 +47,23 @@ test.describe('1. Проверка доступности сервиса', () =>
     allure.severity('critical');
     allure.tag('smoke');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/payment-history/v2/persons/${WALLET}/payments?rows=1`,
       { headers: jsonHeaders(TOKEN) }
     );
+    const elapsed = Date.now() - start;
 
     const { parsed, isEmpty } = await parseJson(response);
     const status = response.status();
 
-    await allure.attachment('Response', JSON.stringify({ status, body: parsed }, null, 2), 'application/json');
+    await allure.attachment('Response', JSON.stringify({ status, body: parsed, elapsed_ms: elapsed }, null, 2), 'application/json');
 
     expect([200, 401, 403, 404]).toContain(status);
+    expect(elapsed).toBeLessThan(10000);
 
     if (!isEmpty && parsed) {
+      assertContentType(response);
       if (status === 200) {
         expect(parsed).toHaveProperty('data');
         expect(Array.isArray(parsed.data)).toBe(true);
@@ -67,21 +78,27 @@ test.describe('1. Проверка доступности сервиса', () =>
     allure.epic('Health Check');
     allure.severity('critical');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/person-profile/v1/profile/current`,
       { headers: jsonHeaders(TOKEN) }
     );
+    const elapsed = Date.now() - start;
 
     const { parsed, isEmpty } = await parseJson(response);
     const status = response.status();
 
     expect([200, 401, 403, 404]).toContain(status);
+    expect(elapsed).toBeLessThan(10000);
 
-    if (!isEmpty && status === 200) {
-      expect(parsed).not.toBeNull();
-      expect(parsed).toHaveProperty('authInfo');
-      expect(parsed).toHaveProperty('contractInfo');
-      expect(parsed).toHaveProperty('userInfo');
+    if (!isEmpty && parsed) {
+      assertContentType(response);
+      if (status === 200) {
+        expect(parsed).not.toBeNull();
+        expect(parsed).toHaveProperty('authInfo');
+        expect(parsed).toHaveProperty('contractInfo');
+        expect(parsed).toHaveProperty('userInfo');
+      }
     }
   });
 
@@ -90,12 +107,15 @@ test.describe('1. Проверка доступности сервиса', () =>
     allure.feature('Авторизация');
     allure.severity('critical');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/payment-history/v2/persons/${WALLET}/payments?rows=1`,
       { headers: { 'Accept': 'application/json' } }
     );
+    const elapsed = Date.now() - start;
 
     expect([401, 403, 404]).toContain(response.status());
+    expect(elapsed).toBeLessThan(10000);
   });
 
   test('Запрос с невалидным токеном - ошибка авторизации', async ({ request }) => {
@@ -103,12 +123,15 @@ test.describe('1. Проверка доступности сервиса', () =>
     allure.feature('Авторизация');
     allure.severity('critical');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/payment-history/v2/persons/${WALLET}/payments?rows=1`,
       { headers: jsonHeaders('invalid-token-12345') }
     );
+    const elapsed = Date.now() - start;
 
     expect([401, 403, 404]).toContain(response.status());
+    expect(elapsed).toBeLessThan(10000);
   });
 });
 
@@ -124,15 +147,19 @@ test.describe('2. Проверка баланса', () => {
     allure.severity('critical');
     allure.tag('smoke');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/funding-sources/v2/persons/${WALLET}/accounts`,
       { headers: jsonHeaders(TOKEN) }
     );
+    const elapsed = Date.now() - start;
 
     const { parsed, isEmpty } = await parseJson(response);
     const status = response.status();
 
-    await allure.attachment('Response', JSON.stringify({ status, body: parsed }, null, 2), 'application/json');
+    await allure.attachment('Response', JSON.stringify({ status, body: parsed, elapsed_ms: elapsed }, null, 2), 'application/json');
+
+    expect(elapsed).toBeLessThan(10000);
 
     if (status === 401 || status === 403 || status === 404) {
       expect([401, 403, 404]).toContain(status);
@@ -140,6 +167,7 @@ test.describe('2. Проверка баланса', () => {
     }
 
     expect(status).toBe(200);
+    assertContentType(response);
     expect(!isEmpty && parsed).not.toBeNull();
 
     expect(parsed).toHaveProperty('accounts');
@@ -165,16 +193,18 @@ test.describe('2. Проверка баланса', () => {
       { headers: jsonHeaders(TOKEN) }
     );
 
-    if (response.status() !== 200) {
-      test.skip('Сервис вернул не-200');
+    const { parsed, isEmpty } = await parseJson(response);
+    const status = response.status();
+
+    // Сервис может быть недоступен - это ожидаемо
+    if (status !== 200 || isEmpty || !parsed) {
+      allure.attachment('Skip reason', `Status: ${status}, isEmpty: ${isEmpty}`, 'text/plain');
+      test.skip(true, `Сервис вернул ${status}, пропускаем проверку схемы`);
       return;
     }
 
-    const { parsed, isEmpty } = await parseJson(response);
-    if (isEmpty || !parsed) {
-      test.skip('Пустой ответ');
-      return;
-    }
+    expect(parsed).toHaveProperty('accounts');
+    expect(Array.isArray(parsed.accounts)).toBe(true);
 
     for (const account of parsed.accounts) {
       expect(account).toHaveProperty('alias');
@@ -189,12 +219,15 @@ test.describe('2. Проверка баланса', () => {
     allure.feature('Авторизация');
     allure.severity('critical');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/funding-sources/v2/persons/${WALLET}/accounts`,
       { headers: { 'Accept': 'application/json' } }
     );
+    const elapsed = Date.now() - start;
 
     expect([401, 403, 404]).toContain(response.status());
+    expect(elapsed).toBeLessThan(10000);
   });
 });
 
@@ -220,19 +253,23 @@ test.describe('3. Создание платежа (1 рубль)', () => {
 
     await allure.attachment('Request body', JSON.stringify(payload, null, 2), 'application/json');
 
+    const start = Date.now();
     const response = await request.post(
       `${BASE_URL}/sinap/api/terms/99/payments`,
       { headers: jsonHeaders(TOKEN), data: payload }
     );
+    const elapsed = Date.now() - start;
 
     const { parsed, isEmpty } = await parseJson(response);
     const status = response.status();
 
-    await allure.attachment('Response', JSON.stringify({ status, body: parsed }, null, 2), 'application/json');
+    await allure.attachment('Response', JSON.stringify({ status, body: parsed, elapsed_ms: elapsed }, null, 2), 'application/json');
 
     expect([200, 400, 401, 403, 404, 500]).toContain(status);
+    expect(elapsed).toBeLessThan(10000);
 
     if (!isEmpty && parsed && status === 200) {
+      assertContentType(response);
       expect(parsed).toHaveProperty('id');
       expect(parsed).toHaveProperty('sum');
       expect(parsed).toHaveProperty('transaction');
@@ -254,12 +291,15 @@ test.describe('3. Создание платежа (1 рубль)', () => {
       fields: { account: RECIPIENT },
     };
 
+    const start = Date.now();
     const response = await request.post(
       `${BASE_URL}/sinap/api/terms/99/payments`,
       { headers: jsonHeaders(TOKEN), data: payload }
     );
+    const elapsed = Date.now() - start;
 
     expect([400, 401, 403, 404, 500]).toContain(response.status());
+    expect(elapsed).toBeLessThan(10000);
   });
 
   test('Создание платежа без суммы возвращает ошибку', async ({ request }) => {
@@ -273,12 +313,15 @@ test.describe('3. Создание платежа (1 рубль)', () => {
       fields: { account: RECIPIENT },
     };
 
+    const start = Date.now();
     const response = await request.post(
       `${BASE_URL}/sinap/api/terms/99/payments`,
       { headers: jsonHeaders(TOKEN), data: payload }
     );
+    const elapsed = Date.now() - start;
 
     expect([400, 401, 403, 404, 500]).toContain(response.status());
+    expect(elapsed).toBeLessThan(10000);
   });
 
   test('Создание платежа без токена возвращает ошибку', async ({ request }) => {
@@ -293,12 +336,15 @@ test.describe('3. Создание платежа (1 рубль)', () => {
       fields: { account: RECIPIENT },
     };
 
+    const start = Date.now();
     const response = await request.post(
       `${BASE_URL}/sinap/api/terms/99/payments`,
       { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, data: payload }
     );
+    const elapsed = Date.now() - start;
 
     expect([401, 403, 404, 500]).toContain(response.status());
+    expect(elapsed).toBeLessThan(10000);
   });
 });
 
@@ -316,17 +362,21 @@ test.describe('4. Исполнение платежа', () => {
 
     const paymentId = '1717700000001';
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/payment-history/v2/persons/${WALLET}/payments/${paymentId}`,
       { headers: jsonHeaders(TOKEN) }
     );
+    const elapsed = Date.now() - start;
 
     const { parsed, isEmpty } = await parseJson(response);
     const status = response.status();
 
     expect([200, 400, 401, 403, 404]).toContain(status);
+    expect(elapsed).toBeLessThan(10000);
 
     if (!isEmpty && parsed && status === 200) {
+      assertContentType(response);
       expect(parsed).toHaveProperty('id');
       expect(parsed).toHaveProperty('sum');
       expect(parsed).toHaveProperty('status');
@@ -339,22 +389,25 @@ test.describe('4. Исполнение платежа', () => {
     allure.feature('Схема ответа');
     allure.severity('normal');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/payment-history/v2/persons/${WALLET}/payments?rows=5`,
       { headers: jsonHeaders(TOKEN) }
     );
-
-    if (response.status() !== 200) {
-      test.skip('Сервис вернул не-200');
-      return;
-    }
+    const elapsed = Date.now() - start;
 
     const { parsed, isEmpty } = await parseJson(response);
-    if (isEmpty || !parsed) {
-      test.skip('Пустой ответ');
+    const status = response.status();
+
+    expect(elapsed).toBeLessThan(10000);
+
+    if (status !== 200 || isEmpty || !parsed) {
+      allure.attachment('Skip reason', `Status: ${status}, isEmpty: ${isEmpty}`, 'text/plain');
+      test.skip(true, `Сервис вернул ${status}, пропускаем проверку схемы`);
       return;
     }
 
+    assertContentType(response);
     expect(parsed).toHaveProperty('data');
     expect(Array.isArray(parsed.data)).toBe(true);
 
@@ -371,11 +424,14 @@ test.describe('4. Исполнение платежа', () => {
     allure.feature('Негативные сценарии');
     allure.severity('normal');
 
+    const start = Date.now();
     const response = await request.get(
       `${BASE_URL}/payment-history/v2/persons/${WALLET}/payments/0`,
       { headers: jsonHeaders(TOKEN) }
     );
+    const elapsed = Date.now() - start;
 
     expect([400, 401, 403, 404]).toContain(response.status());
+    expect(elapsed).toBeLessThan(10000);
   });
 });

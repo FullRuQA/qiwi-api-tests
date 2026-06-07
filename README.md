@@ -96,7 +96,7 @@ Allure-отчёт публикуется в GitHub Pages после успешн
 **Включение GitHub Pages:**
 1. Settings -> Pages -> Source: GitHub Actions
 2. После первого деплоя отчёт будет доступен:
-   `https://fullrqa.github.io/qiwi-api-tests/allure-report/`
+   `https://fullruqa.github.io/qiwi-api-tests/`
 
 ### Переменные окружения
 
