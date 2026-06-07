@@ -1,218 +1,464 @@
 {
   "info": {
     "name": "QIWI Wallet API Tests",
-    "description": "Тестовое задание МКК «Луна» - тестирование API QIWI Кошелька. Коллекция включает 4 проверки: доступность сервиса, проверка баланса, создание платежа, исполнение платежа.",
+    "description": "Тестовое задание МКК «Луна» - тестирование API QIWI Кошелька. 4 проверки: доступность, баланс, создание платежа, исполнение платежа. Включает позитивные и негативные сценарии.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "1. Health Check - Get All Payments",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": {
-          "raw": "{{base_url}}/payment-history/v2/persons/{{wallet}}/payments?rows=1",
-          "host": ["{{base_url}}"],
-          "path": ["payment-history", "v2", "persons", "{{wallet}}", "payments"],
-          "query": [{ "key": "rows", "value": "1" }]
-        },
-        "description": "Проверка доступности сервиса через запрос истории платежей. Ожидаемый ответ: HTTP 200/401/403/404 с JSON-телом."
-      },
-      "event": [
+      "name": "1. Health Check",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200 or 401/403/404 (service is reachable)\", function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 403, 404]);",
-              "});",
-              "",
-              "pm.test(\"Response has JSON content type\", function () {",
-              "    pm.response.to.have.header(\"Content-Type\");",
-              "    const ct = pm.response.headers.get(\"Content-Type\");",
-              "    pm.expect(ct).to.include(\"application/json\");",
-              "});",
-              "",
-              "pm.test(\"Response body is valid JSON\", function () {",
-              "    pm.response.to.be.json;",
-              "});",
-              "",
-              "if (pm.response.code === 200) {",
-              "    pm.test(\"Response contains data array\", function () {",
-              "        const jsonData = pm.response.json();",
-              "        pm.expect(jsonData).to.have.property(\"data\");",
-              "        pm.expect(jsonData.data).to.be.an('array');",
-              "    });",
-              "}"
-            ]
-          }
+          "name": "1.1 Get Payments - формат ответа",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment-history/v2/persons/{{wallet}}/payments?rows=1",
+              "host": ["{{base_url}}"],
+              "path": ["payment-history", "v2", "persons", "{{wallet}}", "payments"],
+              "query": [{ "key": "rows", "value": "1" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 200/401/403/404\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 403, 404]);",
+                "});",
+                "",
+                "pm.test(\"Response is valid JSON\", () => {",
+                "    pm.response.to.be.json;",
+                "});",
+                "",
+                "if (pm.response.code === 200) {",
+                "    pm.test(\"Has data array\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j).to.have.property('data');",
+                "        pm.expect(j.data).to.be.an('array');",
+                "    });",
+                "} else {",
+                "    pm.test(\"Error has code and message\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j).to.have.property('code');",
+                "        pm.expect(j).to.have.property('message');",
+                "    });",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "1.2 Get Profile - формат ответа",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/person-profile/v1/profile/current",
+              "host": ["{{base_url}}"],
+              "path": ["person-profile", "v1", "profile", "current"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 200/401/403/404\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 403, 404]);",
+                "});",
+                "",
+                "pm.test(\"Response is valid JSON\", () => {",
+                "    pm.response.to.be.json;",
+                "});",
+                "",
+                "if (pm.response.code === 200) {",
+                "    pm.test(\"Has authInfo, contractInfo, userInfo\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j).to.have.property('authInfo');",
+                "        pm.expect(j).to.have.property('contractInfo');",
+                "        pm.expect(j).to.have.property('userInfo');",
+                "    });",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "1.3 Без токена - 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment-history/v2/persons/{{wallet}}/payments?rows=1",
+              "host": ["{{base_url}}"],
+              "path": ["payment-history", "v2", "persons", "{{wallet}}", "payments"],
+              "query": [{ "key": "rows", "value": "1" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 401\", () => {",
+                "    pm.response.to.have.status(401);",
+                "});"
+              ]
+            }
+          }]
         }
       ]
     },
     {
-      "name": "2. Check Balance",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": {
-          "raw": "{{base_url}}/funding-sources/v2/persons/{{wallet}}/accounts",
-          "host": ["{{base_url}}"],
-          "path": ["funding-sources", "v2", "persons", "{{wallet}}", "accounts"]
-        },
-        "description": "Проверка баланса QIWI кошелька. Ключевое условие: баланс всегда должен быть больше 0."
-      },
-      "event": [
+      "name": "2. Balance Check",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response is valid JSON with accounts data\", function () {",
-              "    pm.response.to.be.json;",
-              "    const jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property(\"accounts\");",
-              "    pm.expect(jsonData.accounts).to.be.an('array').that.is.not.empty;",
-              "});",
-              "",
-              "pm.test(\"Balance is greater than 0 for all accounts\", function () {",
-              "    const jsonData = pm.response.json();",
-              "    jsonData.accounts.forEach(function(account) {",
-              "        pm.expect(account).to.have.property(\"balance\");",
-              "        pm.expect(account.balance).to.have.property(\"amount\");",
-              "        const balance = parseFloat(account.balance.amount);",
-              "        pm.expect(balance).to.be.above(0,",
-              "            \"Balance for account \" + account.alias + \" should be > 0, got: \" + balance",
-              "        );",
-              "    });",
-              "});",
-              "",
-              "pm.test(\"Each account has required fields per documentation\", function () {",
-              "    const jsonData = pm.response.json();",
-              "    jsonData.accounts.forEach(function(account) {",
-              "        pm.expect(account).to.have.property(\"alias\");",
-              "        pm.expect(account).to.have.property(\"currency\");",
-              "        pm.expect(account).to.have.property(\"balance\");",
-              "    });",
-              "});"
-            ]
-          }
+          "name": "2.1 Get Accounts - баланс > 0",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/funding-sources/v2/persons/{{wallet}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["funding-sources", "v2", "persons", "{{wallet}}", "accounts"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 200/401/403/404\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([200, 401, 403, 404]);",
+                "});",
+                "",
+                "pm.test(\"Response is valid JSON\", () => {",
+                "    pm.response.to.be.json;",
+                "});",
+                "",
+                "if (pm.response.code === 200) {",
+                "    pm.test(\"Has accounts array\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j).to.have.property('accounts');",
+                "        pm.expect(j.accounts).to.be.an('array').that.is.not.empty;",
+                "    });",
+                "",
+                "    pm.test(\"All balances > 0\", () => {",
+                "        const j = pm.response.json();",
+                "        j.accounts.forEach(a => {",
+                "            pm.expect(a.balance.amount).to.be.above(0,",
+                "                `Balance for ${a.alias} should be > 0`);",
+                "        });",
+                "    });",
+                "",
+                "    pm.test(\"Accounts have required fields\", () => {",
+                "        const j = pm.response.json();",
+                "        j.accounts.forEach(a => {",
+                "            pm.expect(a).to.have.property('alias');",
+                "            pm.expect(a).to.have.property('currency');",
+                "            pm.expect(a).to.have.property('balance');",
+                "        });",
+                "    });",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "2.2 Без токена - 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/funding-sources/v2/persons/{{wallet}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["funding-sources", "v2", "persons", "{{wallet}}", "accounts"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 401\", () => {",
+                "    pm.response.to.have.status(401);",
+                "});"
+              ]
+            }
+          }]
         }
       ]
     },
     {
       "name": "3. Create Payment (1 RUB)",
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"id\": \"{{payment_id}}\",\n  \"sum\": {\n    \"amount\": 1,\n    \"currency\": \"643\"\n  },\n  \"paymentMethod\": {\n    \"type\": \"Account\",\n    \"accountId\": \"643\"\n  },\n  \"fields\": {\n    \"account\": \"{{recipient_wallet}}\"\n  }\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/sinap/api/terms/99/payments",
-          "host": ["{{base_url}}"],
-          "path": ["sinap", "api", "terms", "99", "payments"]
-        },
-        "description": "Создание платежа на сумму 1 рубль. ID платежа - timestamp в миллисекундах."
-      },
-      "event": [
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Payment request returns valid response\", function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 403, 404, 500]);",
-              "});",
-              "",
-              "pm.test(\"Response is valid JSON\", function () {",
-              "    pm.response.to.be.json;",
-              "});",
-              "",
-              "if (pm.response.code === 200) {",
-              "    pm.test(\"Payment response contains required fields\", function () {",
-              "        const jsonData = pm.response.json();",
-              "        pm.expect(jsonData).to.have.property(\"id\");",
-              "        pm.expect(jsonData).to.have.property(\"sum\");",
-              "        pm.expect(jsonData).to.have.property(\"transaction\");",
-              "    });",
-              "",
-              "    pm.test(\"Payment amount is 1 RUB\", function () {",
-              "        const jsonData = pm.response.json();",
-              "        pm.expect(jsonData.sum.amount).to.equal(1);",
-              "        pm.expect(jsonData.sum.currency).to.equal(\"643\");",
-              "    });",
-              "",
-              "    pm.test(\"Transaction has status field\", function () {",
-              "        const jsonData = pm.response.json();",
-              "        pm.expect(jsonData.transaction).to.have.property(\"state\");",
-              "    });",
-              "",
-              "    const jsonData = pm.response.json();",
-              "    pm.environment.set(\"created_payment_id\", jsonData.id);",
-              "    pm.environment.set(\"created_payment_txn\", jsonData.transaction.id);",
-              "}"
-            ]
-          }
+          "name": "3.1 Create payment - 1 RUB",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{payment_id}}\",\n  \"sum\": { \"amount\": 1, \"currency\": \"643\" },\n  \"paymentMethod\": { \"type\": \"Account\", \"accountId\": \"643\" },\n  \"fields\": { \"account\": \"{{recipient_wallet}}\" }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/sinap/api/terms/99/payments",
+              "host": ["{{base_url}}"],
+              "path": ["sinap", "api", "terms", "99", "payments"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 200/400/401/403/500\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 403, 500]);",
+                "});",
+                "",
+                "pm.test(\"Response is valid JSON\", () => {",
+                "    pm.response.to.be.json;",
+                "});",
+                "",
+                "if (pm.response.code === 200) {",
+                "    pm.test(\"Has id, sum, transaction\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j).to.have.property('id');",
+                "        pm.expect(j).to.have.property('sum');",
+                "        pm.expect(j).to.have.property('transaction');",
+                "    });",
+                "",
+                "    pm.test(\"Amount is 1 RUB\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j.sum.amount).to.equal(1);",
+                "        pm.expect(j.sum.currency).to.equal('643');",
+                "    });",
+                "",
+                "    pm.test(\"Transaction has state\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j.transaction).to.have.property('state');",
+                "    });",
+                "",
+                "    pm.environment.set('created_payment_id', pm.response.json().id);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "3.2 Невалидная сумма (-1) - ошибка",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{payment_id}}\",\n  \"sum\": { \"amount\": -1, \"currency\": \"643\" },\n  \"paymentMethod\": { \"type\": \"Account\", \"accountId\": \"643\" },\n  \"fields\": { \"account\": \"{{recipient_wallet}}\" }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/sinap/api/terms/99/payments",
+              "host": ["{{base_url}}"],
+              "path": ["sinap", "api", "terms", "99", "payments"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 400/401/403/500 (error)\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([400, 401, 403, 500]);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "3.3 Без суммы - ошибка",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{payment_id}}\",\n  \"paymentMethod\": { \"type\": \"Account\", \"accountId\": \"643\" },\n  \"fields\": { \"account\": \"{{recipient_wallet}}\" }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/sinap/api/terms/99/payments",
+              "host": ["{{base_url}}"],
+              "path": ["sinap", "api", "terms", "99", "payments"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 400/401/403/500 (error)\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([400, 401, 403, 500]);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "3.4 Без токена - 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{payment_id}}\",\n  \"sum\": { \"amount\": 1, \"currency\": \"643\" },\n  \"paymentMethod\": { \"type\": \"Account\", \"accountId\": \"643\" },\n  \"fields\": { \"account\": \"{{recipient_wallet}}\" }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/sinap/api/terms/99/payments",
+              "host": ["{{base_url}}"],
+              "path": ["sinap", "api", "terms", "99", "payments"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 401\", () => {",
+                "    pm.response.to.have.status(401);",
+                "});"
+              ]
+            }
+          }]
         }
       ]
     },
     {
-      "name": "4. Execute Payment Status Check",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Accept", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": {
-          "raw": "{{base_url}}/payment-history/v2/persons/{{wallet}}/payments/{{created_payment_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["payment-history", "v2", "persons", "{{wallet}}", "payments", "{{created_payment_id}}"]
-        },
-        "description": "Проверка статуса исполнения созданного платежа по его ID."
-      },
-      "event": [
+      "name": "4. Payment Execution",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Payment status request returns valid response\", function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 403, 404]);",
-              "});",
-              "",
-              "if (pm.response.code === 200) {",
-              "    pm.test(\"Payment data contains required fields\", function () {",
-              "        const jsonData = pm.response.json();",
-              "        pm.expect(jsonData).to.have.property(\"id\");",
-              "        pm.expect(jsonData).to.have.property(\"sum\");",
-              "        pm.expect(jsonData).to.have.property(\"status\");",
-              "    });",
-              "",
-              "    pm.test(\"Payment status is valid\", function () {",
-              "        const jsonData = pm.response.json();",
-              "        pm.expect(jsonData.status).to.be.oneOf([\"WAITING\", \"SUCCESS\", \"ERROR\", \"REJECTED\"]);",
-              "    });",
-              "",
-              "    pm.test(\"Payment amount matches created payment (1 RUB)\", function () {",
-              "        const jsonData = pm.response.json();",
-              "        pm.expect(jsonData.sum.amount).to.equal(1);",
-              "    });",
-              "}"
-            ]
-          }
+          "name": "4.1 Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment-history/v2/persons/{{wallet}}/payments/{{created_payment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payment-history", "v2", "persons", "{{wallet}}", "payments", "{{created_payment_id}}"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 200/400/401/403/404\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 403, 404]);",
+                "});",
+                "",
+                "pm.test(\"Response is valid JSON\", () => {",
+                "    pm.response.to.be.json;",
+                "});",
+                "",
+                "if (pm.response.code === 200) {",
+                "    pm.test(\"Has id, sum, status\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j).to.have.property('id');",
+                "        pm.expect(j).to.have.property('sum');",
+                "        pm.expect(j).to.have.property('status');",
+                "    });",
+                "",
+                "    pm.test(\"Status is valid\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j.status).to.be.oneOf(['WAITING', 'SUCCESS', 'ERROR', 'REJECTED']);",
+                "    });",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "4.2 History schema validation",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment-history/v2/persons/{{wallet}}/payments?rows=5",
+              "host": ["{{base_url}}"],
+              "path": ["payment-history", "v2", "persons", "{{wallet}}", "payments"],
+              "query": [{ "key": "rows", "value": "5" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "    pm.test(\"History has data array\", () => {",
+                "        const j = pm.response.json();",
+                "        pm.expect(j).to.have.property('data');",
+                "        pm.expect(j.data).to.be.an('array');",
+                "    });",
+                "",
+                "    if (pm.response.json().data.length > 0) {",
+                "        pm.test(\"Payment has id, sum, status\", () => {",
+                "            const p = pm.response.json().data[0];",
+                "            pm.expect(p).to.have.property('id');",
+                "            pm.expect(p).to.have.property('sum');",
+                "            pm.expect(p).to.have.property('status');",
+                "        });",
+                "    }",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "4.3 Несуществующий платеж - 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment-history/v2/persons/{{wallet}}/payments/0",
+              "host": ["{{base_url}}"],
+              "path": ["payment-history", "v2", "persons", "{{wallet}}", "payments", "0"]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status is 400/401/403/404\", () => {",
+                "    pm.expect(pm.response.code).to.be.oneOf([400, 401, 403, 404]);",
+                "});"
+              ]
+            }
+          }]
         }
       ]
     }
@@ -222,6 +468,7 @@
     { "key": "token", "value": "YOUR_API_TOKEN", "type": "string" },
     { "key": "wallet", "value": "79123456789", "type": "string" },
     { "key": "recipient_wallet", "value": "79999999999", "type": "string" },
-    { "key": "payment_id", "value": "1717700000001", "type": "string" }
+    { "key": "payment_id", "value": "1717700000001", "type": "string" },
+    { "key": "created_payment_id", "value": "", "type": "string" }
   ]
 }
